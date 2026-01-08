@@ -41,48 +41,117 @@ go install github.com/haung921209/nhn-cloud-mcp@latest
 
 ## Configuration
 
-Credentials are loaded with priority: **File > Environment > Interactive**
+### Credential Priority Chain
+
+Credentials are loaded in order of priority. Higher priority sources override lower ones:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. Credentials File (~/.nhncloud/credentials)              │
+│     - Shared with NHN Cloud CLI                             │
+│     - Recommended for local development                     │
+│     - Most secure (file permissions, not in process list)   │
+├─────────────────────────────────────────────────────────────┤
+│  2. Environment Variables                                   │
+│     - Override credentials file values                      │
+│     - Good for CI/CD, Docker, cloud deployments            │
+│     - Set via shell or MCP client config                    │
+├─────────────────────────────────────────────────────────────┤
+│  3. Interactive (Runtime via MCP Tool)                      │
+│     - Set credentials during conversation                   │
+│     - Fallback when file/env not configured                │
+│     - Not persisted (session only)                          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Required Credentials by Service
+
+| Service | Required Credentials |
+|---------|---------------------|
+| **RDS MySQL** | `access_key_id` + `secret_access_key` + `rds_app_key` |
+| **RDS MariaDB** | `access_key_id` + `secret_access_key` + `rds_mariadb_app_key` |
+| **RDS PostgreSQL** | `access_key_id` + `secret_access_key` + `rds_postgresql_app_key` |
+| **Compute/Network** | `username` + `api_password` + `tenant_id` |
 
 ### Option 1: Credentials File (Recommended)
 
-Share credentials with NHN Cloud CLI via `~/.nhncloud/credentials`:
+Create `~/.nhncloud/credentials` (same format as NHN Cloud CLI):
 
 ```ini
 [default]
+# Required: OAuth credentials for RDS services
 access_key_id = your-access-key
 secret_access_key = your-secret-key
 region = kr1
 
-# RDS App Keys
+# RDS App Keys (get from NHN Cloud Console > each RDS service > App Key)
 rds_app_key = your-mysql-appkey
 rds_mariadb_app_key = your-mariadb-appkey
 rds_postgresql_app_key = your-postgresql-appkey
 
-# Compute/Network (optional)
-username = your-email
+# Optional: Identity credentials for Compute/Network services
+username = your-email@example.com
 api_password = your-api-password
 tenant_id = your-tenant-id
 ```
 
+Secure the file:
+```bash
+chmod 600 ~/.nhncloud/credentials
+chmod 700 ~/.nhncloud
+```
+
 ### Option 2: Environment Variables
 
+Environment variables override credentials file values:
+
+| File Key | Environment Variable | Description |
+|----------|---------------------|-------------|
+| `access_key_id` | `NHN_CLOUD_ACCESS_KEY_ID` | OAuth access key |
+| `secret_access_key` | `NHN_CLOUD_SECRET_ACCESS_KEY` | OAuth secret key |
+| `region` | `NHN_CLOUD_REGION` | Region (default: kr1) |
+| `rds_app_key` | `NHN_CLOUD_MYSQL_APPKEY` | MySQL service app key |
+| `rds_mariadb_app_key` | `NHN_CLOUD_MARIADB_APPKEY` | MariaDB service app key |
+| `rds_postgresql_app_key` | `NHN_CLOUD_POSTGRESQL_APPKEY` | PostgreSQL service app key |
+| `username` | `NHN_CLOUD_USERNAME` | API username (email) |
+| `api_password` | `NHN_CLOUD_PASSWORD` | API password |
+| `tenant_id` | `NHN_CLOUD_TENANT_ID` | Tenant ID |
+
+Example:
 ```bash
 export NHN_CLOUD_ACCESS_KEY_ID="your-access-key"
 export NHN_CLOUD_SECRET_ACCESS_KEY="your-secret-key"
 export NHN_CLOUD_MYSQL_APPKEY="your-mysql-appkey"
-export NHN_CLOUD_REGION="kr1"
 ```
 
 ### Option 3: Interactive (Runtime)
 
-Use `nhn_set_credential` tool to set credentials at runtime:
+When credentials are not configured via file or environment, use MCP tools:
 
+**Set a credential:**
 ```
 nhn_set_credential(key="access_key_id", value="your-key")
+nhn_set_credential(key="secret_access_key", value="your-secret")
 nhn_set_credential(key="mysql_appkey", value="your-appkey")
 ```
 
-Check status with `nhn_get_credential_status` tool.
+**Check credential status:**
+```
+nhn_get_credential_status()
+```
+
+Returns which credentials are configured and their source (file/env/interactive).
+
+**Available keys for `nhn_set_credential`:**
+- `access_key_id`, `secret_access_key`, `region`
+- `mysql_appkey`, `mariadb_appkey`, `postgresql_appkey`
+- `username`, `password`, `tenant_id`
+
+### How to Get Credentials
+
+1. **Access Key & Secret Key**: NHN Cloud Console > My Page > API Security Settings
+2. **App Keys**: NHN Cloud Console > Select Service (e.g., RDS for MySQL) > URL & Appkey
+3. **Tenant ID**: NHN Cloud Console > Compute > Instance > API Endpoint Information
 
 ## Usage with Claude Desktop
 
