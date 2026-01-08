@@ -29,9 +29,8 @@ type ListMySQLInstancesOutput struct {
 	Count     int             `json:"count"`
 }
 
-// GetMySQLInstanceInput - input for getting a single MySQL instance
 type GetMySQLInstanceInput struct {
-	InstanceID string `json:"instance_id" jsonschema:"required,description=The ID of the MySQL instance"`
+	InstanceID string `json:"instance_id" jsonschema_description:"The ID of the MySQL instance"`
 }
 
 // GetMySQLInstanceOutput - output for getting a single MySQL instance
@@ -56,9 +55,8 @@ type ListMySQLFlavorsOutput struct {
 	Count   int           `json:"count"`
 }
 
-// ListMySQLBackupsInput - input for listing MySQL backups
 type ListMySQLBackupsInput struct {
-	InstanceID string `json:"instance_id,omitempty" jsonschema:"description=Filter by instance ID (optional)"`
+	InstanceID string `json:"instance_id,omitempty" jsonschema_description:"Filter by instance ID (optional)"`
 }
 
 // MySQLBackup represents a MySQL backup

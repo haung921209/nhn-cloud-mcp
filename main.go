@@ -16,40 +16,38 @@ const (
 )
 
 func main() {
-	// Load configuration from environment variables
-	cfg := config.LoadFromEnv()
+	cfg := config.Load()
 
-	// Validate configuration
-	if !cfg.HasRDSCredentials() {
-		log.Println("Warning: RDS credentials not configured. Set NHN_CLOUD_ACCESS_KEY_ID and NHN_CLOUD_SECRET_ACCESS_KEY.")
-	}
-
-	// Create MCP server
 	server := mcp.NewServer(&mcp.Implementation{
 		Name:    serverName,
 		Version: serverVersion,
 	}, nil)
 
-	// Register tools
-	if cfg.HasRDSCredentials() {
-		if cfg.MySQLAppKey != "" {
-			tools.RegisterMySQLTools(server, cfg)
-			log.Println("Registered MySQL tools")
-		}
-		// TODO: Add MariaDB tools
-		// TODO: Add PostgreSQL tools
+	tools.RegisterAuthTools(server, cfg)
+	log.Println("Registered auth tools (nhn_set_credential, nhn_get_credential_status)")
+
+	if cfg.MySQLAppKey != "" {
+		tools.RegisterMySQLTools(server, cfg)
+		log.Println("Registered MySQL tools")
 	}
 
-	if cfg.HasComputeCredentials() {
-		// TODO: Add Compute tools
-		// TODO: Add Network tools
-		log.Println("Compute credentials configured (tools not yet implemented)")
-	}
+	logCredentialStatus(cfg)
 
-	// Run server over stdio
 	log.Printf("Starting %s v%s...\n", serverName, serverVersion)
 	if err := server.Run(context.Background(), &mcp.StdioTransport{}); err != nil {
 		log.Printf("Server error: %v\n", err)
 		os.Exit(1)
+	}
+}
+
+func logCredentialStatus(cfg *config.Config) {
+	if cfg.HasRDSCredentials() {
+		log.Printf("RDS credentials: configured (source: %s)", cfg.GetSource("AccessKeyID"))
+	} else {
+		log.Println("RDS credentials: not configured - use nhn_set_credential tool or configure ~/.nhncloud/credentials")
+	}
+
+	if cfg.HasComputeCredentials() {
+		log.Printf("Compute credentials: configured (source: %s)", cfg.GetSource("Username"))
 	}
 }
